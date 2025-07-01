@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2D Car Racing Game</title>
+  <style>
+    body {
+      background: #222;
+      color: #fff;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    #gameCanvas {
+      background: #444;
+      margin-top: 30px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      border: 3px solid #fff;
+    }
+    #score {
+      font-size: 1.3em;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>2D Car Racing Game</h1>
+  <div id="score">Score: 0</div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const roadWidth = 240;
+    const roadX = (canvas.width - roadWidth) / 2;
+    let score = 0;
+    let gameOver = false;
+
+    // Player car
+    const car = {
+      width: 40,
+      height: 70,
+      x: canvas.width / 2 - 20,
+      y: canvas.height - 100,
+      speed: 6
+    };
+
+    // Enemy cars
+    const enemies = [];
+    const enemyWidth = 40;
+    const enemyHeight = 70;
+    let enemySpeed = 3;
+    let frames = 0;
+
+    function drawRoad() {
+      // Road
+      ctx.fillStyle = "#888";
+      ctx.fillRect(roadX, 0, roadWidth, canvas.height);
+
+      // Road borders
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(roadX - 10, 0, 10, canvas.height);
+      ctx.fillRect(roadX + roadWidth, 0, 10, canvas.height);
+
+      // Center dashed line
+      ctx.strokeStyle = "#fff";
+      ctx.setLineDash([20, 20]);
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(roadX + roadWidth / 2, 0);
+      ctx.lineTo(roadX + roadWidth / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawCar(x, y, color = "#00e0ff") {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, car.width, car.height);
+      // Simple windshield
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x + 8, y + 12, 24, 15);
+      // Wheels
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x + 2, y + 8, 7, 17);
+      ctx.fillRect(x + 31, y + 8, 7, 17);
+      ctx.fillRect(x + 2, y + 45, 7, 17);
+      ctx.fillRect(x + 31, y + 45, 7, 17);
+    }
+
+    function drawEnemies() {
+      for (let enemy of enemies) {
+        drawCar(enemy.x, enemy.y, "#ff4040");
+      }
+    }
+
+    function updateEnemies() {
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].y += enemies[i].speed;
+        // Remove offscreen enemy and increase score
+        if (enemies[i].y > canvas.height) {
+          enemies.splice(i, 1);
+          score++;
+          document.getElementById("score").textContent = "Score: " + score;
+        }
+      }
+      // Add new enemy
+      if (frames % 60 === 0) {
+        let lane = Math.floor(Math.random() * 3);
+        let x = roadX + lane * (roadWidth / 3) + (roadWidth / 6) - enemyWidth / 2;
+        enemies.push({ x: x, y: -enemyHeight, speed: enemySpeed });
+        // Gradually increase speed for more challenge
+        if (enemySpeed < 9) enemySpeed += 0.05;
+      }
+    }
+
+    function checkCollision() {
+      for (let enemy of enemies) {
+        if (
+          car.x < enemy.x + enemyWidth &&
+          car.x + car.width > enemy.x &&
+          car.y < enemy.y + enemyHeight &&
+          car.y + car.height > enemy.y
+        ) {
+          gameOver = true;
+          setTimeout(() => {
+            alert("Game Over! Your score: " + score);
+            location.reload();
+          }, 200);
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawRoad();
+      drawCar(car.x, car.y);
+      drawEnemies();
+    }
+
+    function update() {
+      if (gameOver) return;
+      frames++;
+      updateEnemies();
+      checkCollision();
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (gameOver) return;
+      if (e.key === "ArrowLeft") {
+        car.x -= car.speed;
+        if (car.x < roadX) car.x = roadX;
+      } else if (e.key === "ArrowRight") {
+        car.x += car.speed;
+        if (car.x + car.width > roadX + roadWidth)
+          car.x = roadX + roadWidth - car.width;
+      }
+    });
+
+    function gameLoop() {
+      update();
+      draw();
+      if (!gameOver) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
